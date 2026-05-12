@@ -1,10 +1,9 @@
 name: API E2E Tests
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  schedule:
+    # Run every 3 hours at :35 past the hour (7:35, 10:35, 13:35, 16:35, 19:35)
+    - cron: '35 7,10,13,16,19 * * *'
   workflow_dispatch:
 
 permissions:
