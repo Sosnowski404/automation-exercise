@@ -107,6 +107,15 @@ jobs:
           name: api-test-results-prod-final
           path: test-results
 
+      - name: Deploy Allure Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-report
+          destination_dir: allure-report
+
   notify:
     name: Discord Notification
     runs-on: ubuntu-latest
