@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -34,7 +34,7 @@ jobs:
       - name: Extract and Store Playwright Version
         id: playwright-version
         run: |
-          PLAYWRIGHT_VERSION=$(npm ls @playwright/test | grep @playwright | sed 's/.*@//')
+          PLAYWRIGHT_VERSION=$(npm ls @playwright/test --json | node -e "const j=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(j).dependencies['@playwright/test'].version)")
           echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
           echo "Playwright's Version: $PLAYWRIGHT_VERSION"
 
@@ -70,7 +70,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
