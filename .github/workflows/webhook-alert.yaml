@@ -1,0 +1,74 @@
+name: Discord Webhook Alert
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment name"
+        required: true
+        type: string
+    secrets:
+      webhook-url:
+        description: "Discord webhook URL"
+        required: true
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Notify Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.webhook-url }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "Webhook URL was not provided, skipping notification"
+            exit 0
+          fi
+
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [
+              {
+                "title": "❌ E2E tests failed for ${{ github.workflow }} on ${ENVIRONMENT}",
+                "color": 16711680,
+                "fields": [
+                  {
+                    "name": "Environment",
+                    "value": "${ENVIRONMENT}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Workflow",
+                    "value": "${{ github.workflow }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Run ID",
+                    "value": "${{ github.run_id }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Repository",
+                    "value": "${{ github.repository }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Build URL",
+                    "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                    "inline": false
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+
+          curl -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$WEBHOOK_URL"
+
+          echo "Webhook URL: $WEBHOOK_URL"
+          echo "Payload: $PAYLOAD"

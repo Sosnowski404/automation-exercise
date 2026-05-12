@@ -1,0 +1,35 @@
+name: Playwright Browser Cache
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: "Working directory for Playwright"
+        required: true
+        type: string
+
+jobs:
+  install-browsers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract and Store Playwright Version
+        id: playwright-version
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          PLAYWRIGHT_VERSION=$(npm ls @playwright/test | grep @playwright | sed 's/.*@//')
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
+          echo "Playwright's Version: $PLAYWRIGHT_VERSION"
+
+      - name: Cache Playwright Browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
+          path: ~/.cache/ms-playwright
+
+      - name: Install Playwright Browsers
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        working-directory: ${{ inputs.working-directory }}
+        run: npx playwright install --with-deps chromium

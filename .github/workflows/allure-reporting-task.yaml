@@ -1,0 +1,76 @@
+name: Allure Reporting
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: "Working directory for E2E tests"
+        required: true
+        type: string
+      environment:
+        description: "Environment name for artifact naming"
+        required: true
+        type: string
+      artifact-name-prefix:
+        description: "Prefix for artifact names"
+        required: false
+        type: string
+        default: "e2e"
+      report-name:
+        description: "Display name for the Allure report"
+        required: false
+        type: string
+        default: "E2E Tests"
+      allure-version:
+        description: "Allure version to use"
+        required: false
+        type: string
+        default: "2.34.1"
+
+jobs:
+  allure-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Allure Reports History
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ inputs.artifact-name-prefix }}-allure-report-history-${{ inputs.environment }}
+          path: ${{ inputs.working-directory }}/test-results/allure-results/history
+
+      - name: Install Allure Command Line and TS Node
+        working-directory: ${{ inputs.working-directory }}
+        run: npm install -g allure-commandline@${{ inputs.allure-version }} ts-node
+
+      - name: Generate ${{ inputs.report-name }} Allure Report History
+        working-directory: ${{ inputs.working-directory }}
+        run: npm run allure:generate
+
+      - name: Upload Allure Report History
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name-prefix }}-allure-report-history-${{ inputs.environment }}
+          path: ${{ inputs.working-directory }}/allure-report/history
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name-prefix }}-test-results-${{ inputs.environment }}
+          path: ${{ inputs.working-directory }}/test-results
+
+      - name: Publish Allure Report
+        uses: simple-elf/allure-report-action@master
+        with:
+          allure_results: ${{ inputs.working-directory }}/test-results/allure-results
+          allure_report: allure-report
+          gh_pages: gh-pages
+
+      - name: Publish JUnit Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: "${{ inputs.report-name }} ${{ inputs.environment }}"
+          path: ${{ inputs.working-directory }}/test-results/results.xml
+          reporter: java-junit
