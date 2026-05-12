@@ -6,6 +6,10 @@ on:
     - cron: '35 7,10,13,16,19 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pages: write
+
 jobs:
   api-tests-prod:
     name: API Tests (prod)
