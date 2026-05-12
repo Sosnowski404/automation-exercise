@@ -1,0 +1,226 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: api.spec.ts >> /verifyLogin endpoint tests >> API 7: POST To Verify Login with valid details should return 200
+- Location: tests\api.spec.ts:377:9
+
+# Error details
+
+```
+Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 200
+Received: 404
+```
+
+# Test source
+
+```ts
+  280 |     test('Negative: SQL injection attempt as search_product param', async ({ request }) => {
+  281 |         const responseBody = await searchProduct(request, "' OR 1=1 --");
+  282 | 
+  283 |         expect(responseBody.responseCode).toBe(200);
+  284 |         expect(responseBody.products).toBeDefined();
+  285 |     });
+  286 | 
+  287 |     test('Negative: HTML/script injection as search_product param', async ({ request }) => {
+  288 |         const responseBody = await searchProduct(request, '<script>alert(1)</script>');
+  289 | 
+  290 |         expect(responseBody.responseCode).toBe(200);
+  291 |         expect(responseBody.products).toBeDefined();
+  292 |     });
+  293 | 
+  294 |     test('Negative: Extra unknown form params alongside search_product', async ({ request }) => {
+  295 |         const response = await rawRequest(request, {
+  296 |             method: 'post',
+  297 |             endpoint: 'searchProduct',
+  298 |             form: { search_product: 'top', extra_param: 'should_be_ignored', limit: '5' },
+  299 |         });
+  300 |         const body = await response.json();
+  301 |         expect(body.responseCode).toBe(200);
+  302 |     });
+  303 | 
+  304 |     test('Negative: Wrong param name instead of search_product', async ({ request }) => {
+  305 |         const response = await rawRequest(request, {
+  306 |             method: 'post',
+  307 |             endpoint: 'searchProduct',
+  308 |             form: { search: 'top' },
+  309 |         });
+  310 |         const body = await response.json();
+  311 |         expect(body.responseCode).toBe(400);
+  312 |     });
+  313 | 
+  314 |     test('Negative: search_product as query param instead of form data', async ({ request }) => {
+  315 |         const response = await rawRequest(request, {
+  316 |             method: 'post',
+  317 |             endpoint: 'searchProduct',
+  318 |             queryParams: { search_product: 'top' },
+  319 |         });
+  320 |         const body = await response.json();
+  321 |         expect(body.responseCode).toBe(400);
+  322 |     });
+  323 | 
+  324 |     test('Negative: Path param appended to searchProduct', async ({ request }) => {
+  325 |         const response = await rawRequest(request, {
+  326 |             method: 'post',
+  327 |             endpoint: 'searchProduct',
+  328 |             pathSuffix: 'top',
+  329 |             form: { search_product: 'top' },
+  330 |         });
+  331 |         expect(response.status()).not.toBe(200);
+  332 |     });
+  333 | 
+  334 |     test('Negative: SQL injection in form param name', async ({ request }) => {
+  335 |         const response = await rawRequest(request, {
+  336 |             method: 'post',
+  337 |             endpoint: 'searchProduct',
+  338 |             form: { "search_product' OR '1'='1": 'top' },
+  339 |         });
+  340 |         const body = await response.json();
+  341 |         expect(body.responseCode).toBe(400);
+  342 |     });
+  343 | 
+  344 |     test('Negative: Numeric path param on searchProduct', async ({ request }) => {
+  345 |         const response = await rawRequest(request, {
+  346 |             method: 'post',
+  347 |             endpoint: 'searchProduct',
+  348 |             pathSuffix: '123',
+  349 |         });
+  350 |         expect(response.status()).not.toBe(200);
+  351 |     });
+  352 | 
+  353 |     test('Negative: Multiple search_product values via comma', async ({ request }) => {
+  354 |         const response = await rawRequest(request, {
+  355 |             method: 'post',
+  356 |             endpoint: 'searchProduct',
+  357 |             form: { search_product: 'top,jean,tshirt' },
+  358 |         });
+  359 |         const body = await response.json();
+  360 |         expect(body.responseCode).toBe(200);
+  361 |     });
+  362 | 
+  363 |     test('Negative: Path traversal on searchProduct', async ({ request }) => {
+  364 |         const response = await rawRequest(request, {
+  365 |             method: 'post',
+  366 |             endpoint: 'searchProduct',
+  367 |             pathSuffix: '../productsList',
+  368 |         });
+  369 |         expect(response.status()).not.toBe(200);
+  370 |     });
+  371 | });
+  372 | 
+  373 | test.describe('/verifyLogin endpoint tests', () => {
+  374 |     const validEmail = process.env.TEST_USER_EMAIL!;
+  375 |     const validPassword = process.env.TEST_USER_PASSWORD!;
+  376 | 
+  377 |     test('API 7: POST To Verify Login with valid details should return 200', async ({ request }) => {
+  378 |         const responseBody = await verifyLogin(request, validEmail, validPassword);
+  379 | 
+> 380 |         expect(responseBody.responseCode).toBe(200);
+      |                                           ^ Error: expect(received).toBe(expected) // Object.is equality
+  381 |         expect(responseBody.message).toBe('User exists!');
+  382 |     });
+  383 | 
+  384 |     test('API 8: POST To Verify Login without email param should return 400', async ({ request }) => {
+  385 |         const responseBody = await verifyLoginWithFormData(request, { password: validPassword });
+  386 | 
+  387 |         expect(responseBody.responseCode).toBe(400);
+  388 |         expect(responseBody.message).toBe('Bad request, email or password parameter is missing in POST request.');
+  389 |     });
+  390 | 
+  391 |     test('API 8: POST To Verify Login without password param should return 400', async ({ request }) => {
+  392 |         const responseBody = await verifyLoginWithFormData(request, { email: validEmail });
+  393 | 
+  394 |         expect(responseBody.responseCode).toBe(400);
+  395 |         expect(responseBody.message).toBe('Bad request, email or password parameter is missing in POST request.');
+  396 |     });
+  397 | 
+  398 |     test('API 8: POST To Verify Login without any params should return 400', async ({ request }) => {
+  399 |         const responseBody = await verifyLoginWithoutParams(request);
+  400 | 
+  401 |         expect(responseBody.responseCode).toBe(400);
+  402 |         expect(responseBody.message).toBe('Bad request, email or password parameter is missing in POST request.');
+  403 |     });
+  404 | 
+  405 |     test('API 9: DELETE To Verify Login should return 405', async ({ request }) => {
+  406 |         const responseBody = await deleteVerifyLogin(request);
+  407 | 
+  408 |         expect(responseBody.responseCode).toBe(405);
+  409 |         expect(responseBody.message).toBe('This request method is not supported.');
+  410 |     });
+  411 | 
+  412 |     test('Negative: GET method on verifyLogin should return 405', async ({ request }) => {
+  413 |         const responseBody = await getVerifyLogin(request);
+  414 | 
+  415 |         expect(responseBody.responseCode).toBe(405);
+  416 |     });
+  417 | 
+  418 |     test('Negative: PUT method on verifyLogin should return 405', async ({ request }) => {
+  419 |         const responseBody = await putVerifyLogin(request);
+  420 | 
+  421 |         expect(responseBody.responseCode).toBe(405);
+  422 |     });
+  423 | 
+  424 |     test('Negative: Invalid email with valid password should not return 200', async ({ request }) => {
+  425 |         const responseBody = await verifyLogin(request, 'nonexistent@fake.com', validPassword);
+  426 | 
+  427 |         expect(responseBody.responseCode).not.toBe(200);
+  428 |     });
+  429 | 
+  430 |     test('Negative: Valid email with wrong password should not return 200', async ({ request }) => {
+  431 |         const responseBody = await verifyLogin(request, validEmail, 'wrongpassword123');
+  432 | 
+  433 |         expect(responseBody.responseCode).not.toBe(200);
+  434 |     });
+  435 | 
+  436 |     test('Negative: Both email and password invalid should not return 200', async ({ request }) => {
+  437 |         const responseBody = await verifyLogin(request, 'fake@fake.com', 'fakepass');
+  438 | 
+  439 |         expect(responseBody.responseCode).not.toBe(200);
+  440 |     });
+  441 | 
+  442 |     test('Negative: Numeric value as email', async ({ request }) => {
+  443 |         const responseBody = await verifyLogin(request, '12345', validPassword);
+  444 | 
+  445 |         expect(responseBody.responseCode).not.toBe(200);
+  446 |     });
+  447 | 
+  448 |     test('Negative: Empty string as email', async ({ request }) => {
+  449 |         const responseBody = await verifyLoginWithFormData(request, { email: '', password: validPassword });
+  450 | 
+  451 |         expect(responseBody.responseCode).not.toBe(200);
+  452 |     });
+  453 | 
+  454 |     test('Negative: Empty string as password', async ({ request }) => {
+  455 |         const responseBody = await verifyLoginWithFormData(request, { email: validEmail, password: '' });
+  456 | 
+  457 |         expect(responseBody.responseCode).not.toBe(200);
+  458 |     });
+  459 | 
+  460 |     test('Negative: SQL injection in email field', async ({ request }) => {
+  461 |         const responseBody = await verifyLogin(request, "' OR 1=1 --", validPassword);
+  462 | 
+  463 |         expect(responseBody.responseCode).not.toBe(200);
+  464 |     });
+  465 | 
+  466 |     test('Negative: SQL injection in password field', async ({ request }) => {
+  467 |         const responseBody = await verifyLogin(request, validEmail, "' OR 1=1 --");
+  468 | 
+  469 |         expect(responseBody.responseCode).not.toBe(200);
+  470 |     });
+  471 | 
+  472 |     test('Negative: XSS injection in email field', async ({ request }) => {
+  473 |         const responseBody = await verifyLogin(request, '<script>alert(1)</script>', validPassword);
+  474 | 
+  475 |         expect(responseBody.responseCode).not.toBe(200);
+  476 |     });
+  477 | 
+  478 |     test('Negative: Special characters as email', async ({ request }) => {
+  479 |         const responseBody = await verifyLogin(request, '!@#$%^&*()', validPassword);
+  480 | 
+```
