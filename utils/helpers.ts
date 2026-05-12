@@ -69,7 +69,7 @@ export function randomState(): string {
 }
 
 export function randomCountry(): string {
-    const countries = ['United States', 'Canada', 'India', 'United Kingdom', 'Australia'];
+    const countries = ['United States', 'Canada', 'India', 'Australia', 'Israel', 'New Zealand', 'Singapore'];
     return countries[Math.floor(Math.random() * countries.length)];
 }
 

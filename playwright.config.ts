@@ -69,8 +69,12 @@ export default defineConfig({
       name: 'desktop-',
       testMatch: '/*/desktop/**/*.spec.ts',
       use: { ...devices['Desktop Chrome'],
+        channel: 'chrome',
         viewport: { width: 1280, height: 900 },
         isMobile: false,
+        launchOptions: {
+          args: ['--disable-blink-features=AutomationControlled'],
+        },
        },
     },
     {
