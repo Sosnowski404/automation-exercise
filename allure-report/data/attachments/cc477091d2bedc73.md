@@ -1,0 +1,79 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: api/brands-list.spec.ts >> /brandsList endpoint tests >> API 3: Get All Brands List should return 200 and brands array
+- Location: tests/api/brands-list.spec.ts:6:9
+
+# Error details
+
+```
+SyntaxError: Unexpected token '<', "<h2>This w"... is not valid JSON
+```
+
+# Test source
+
+```ts
+  1  | import { APIRequestContext } from '@playwright/test';
+  2  | import { apiUrl } from '../constants/url';
+  3  | 
+  4  | export interface Brand {
+  5  |     id: number;
+  6  |     brand: string;
+  7  | }
+  8  | 
+  9  | export interface BrandsListResponse {
+  10 |     responseCode: number;
+  11 |     brands: Brand[];
+  12 | }
+  13 | 
+  14 | function validateKeys(obj: Record<string, unknown>, expectedKeys: string[], context: string): void {
+  15 |     const actualKeys = Object.keys(obj).sort();
+  16 |     const expected = [...expectedKeys].sort();
+  17 |     const extraKeys = actualKeys.filter(key => !expected.includes(key));
+  18 |     if (extraKeys.length > 0) {
+  19 |         throw new Error(`Unexpected fields in ${context}: [${extraKeys.join(', ')}]`);
+  20 |     }
+  21 |     const missingKeys = expected.filter(key => !actualKeys.includes(key));
+  22 |     if (missingKeys.length > 0) {
+  23 |         throw new Error(`Missing fields in ${context}: [${missingKeys.join(', ')}]`);
+  24 |     }
+  25 | }
+  26 | 
+  27 | function validateBrandsListResponse(body: BrandsListResponse): void {
+  28 |     validateKeys(body as unknown as Record<string, unknown>, ['responseCode', 'brands'], 'BrandsListResponse');
+  29 |     if (body.brands) {
+  30 |         body.brands.forEach(brand =>
+  31 |             validateKeys(brand as unknown as Record<string, unknown>, ['id', 'brand'], 'Brand')
+  32 |         );
+  33 |     }
+  34 | }
+  35 | 
+  36 | export async function getBrandsList(request: APIRequestContext): Promise<BrandsListResponse> {
+  37 |     const response = await request.get(`${apiUrl}/brandsList`);
+> 38 |     const body = await response.json();
+     |                  ^ SyntaxError: Unexpected token '<', "<h2>This w"... is not valid JSON
+  39 |     validateBrandsListResponse(body);
+  40 |     return body;
+  41 | }
+  42 | 
+  43 | export async function postToBrandsList(request: APIRequestContext): Promise<BrandsListResponse> {
+  44 |     const response = await request.post(`${apiUrl}/brandsList`);
+  45 |     return response.json();
+  46 | }
+  47 | 
+  48 | export async function deleteToBrandsList(request: APIRequestContext): Promise<BrandsListResponse> {
+  49 |     const response = await request.delete(`${apiUrl}/brandsList`);
+  50 |     return response.json();
+  51 | }
+  52 | 
+  53 | export async function putToBrandsList(request: APIRequestContext): Promise<BrandsListResponse> {
+  54 |     const response = await request.put(`${apiUrl}/brandsList`);
+  55 |     return response.json();
+  56 | }
+  57 | 
+```
